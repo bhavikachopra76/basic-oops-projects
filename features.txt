@@ -1,0 +1,25 @@
+📌 Features Included
+
+1. Account Creation
+Create a new bank account
+Store customer details securely
+
+2. Deposit Money
+Add funds to an existing account
+Automatically update account balance
+
+3. Withdraw Money
+Withdraw funds from an account
+Check for sufficient balance before withdrawal
+
+4. View Account Details
+Display customer information
+Show current account balance
+
+5. Update Account Details
+Modify customer information
+Keep records up to date
+
+6. Delete Account
+Remove an existing account
+Clear associated data safely
