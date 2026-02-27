@@ -40,7 +40,8 @@ class Expense:
             "email" : input("Enter your email: ").lower(),
             "password" : input("Enter your password: "),
             "userID" : Expense.generate_user(),
-            "expenses": []
+            "expenses": [],
+            "budgets": []
         }
         user_info = [x for x in Expense.data if x['email'] == info['email']]
         if not user_info:
@@ -96,16 +97,20 @@ class Expense:
     def update_expense(logged_in_user):
         date = input("Enter your expense date (DD-MM-YYYY): ").strip()
         cat = input("Enter your expense category: ").strip()
-        matched = [x for x in logged_in_user['expenses'] if x['date'] == date and x['category'] == cat]
+
+
+        matched = [x for x in logged_in_user['expenses'] if x['date'] == date and x['category'].lower() == cat.lower()]
+
         if not matched:
             print("No expenses found")
+            return
 
         for i, exp in enumerate(matched , 1):
             print(f"{i} | {exp['date']} | {exp['category']} | ₹{exp['amount']} | {exp['note']}")
 
         if len(matched) > 1:
             choice = int(input("Enter your choice: "))
-            selected = matched[choice]
+            selected = matched[choice - 1]
         else:
             selected = matched[0]
 
@@ -145,10 +150,13 @@ class Expense:
         else:
             selected = matched[0]
 
-        logged_in_user['expenses'].remove(selected)
-        Expense.__update()
-
-        print("Expense deleted successfully!")
+        confirm = input("Are you sure you want to delete this expense? (y/n): ").lower()
+        if confirm == 'y':
+            logged_in_user['expenses'].remove(selected)
+            Expense.__update()
+            print("Expense deleted successfully!")
+        else:
+            print("Deletion cancelled")
 
     @staticmethod
     def view_expense(logged_in_user):
@@ -160,21 +168,81 @@ class Expense:
         print("📋 Your Expenses:")
         for expense in exp:
             print(f"{expense['date']} | {expense['category']} | {expense['amount']} | {expense['note']}")
-        total = 0
-        for expense in exp:
-            total += expense['amount']
-        print(f"\nTotal Expenses : {total}")
+        total = sum(expense['amount'] for expense in exp)
+        print(f"\nTotal Expenses : ₹{total}")
 
+    @staticmethod
+    def set_budget(logged_in_user):
+        category = input("Enter your category: ").strip()
+        limit = int(input("Enter your monthly budget limit: ").strip())
 
-    def set_budget(self, logged_in_user):
-        pass
+        existing = [x for x in logged_in_user['budgets'] if x['category'].lower() == category.lower()]
 
+        if existing:
+            existing[0]['limit'] = limit
+            print(f"Budget updated to ₹{limit} for {category}")
+        else:
+            logged_in_user['budgets'].append({'category': category, 'limit': limit})
+            print(f"Budget of ₹{limit} set for {category}")
 
-    def show_budget(self , logged_in_user):
-        pass
+        Expense.__update()
 
-    def show_summary(self , logged_in_user):
-        pass
+    @staticmethod
+    def show_budget(logged_in_user):
+        if not logged_in_user['budgets']:
+            print("No budgets set")
+            return
+
+        current_month = datetime.now().strftime("%m-%Y")
+        monthly = [x for x in logged_in_user['expenses'] if x['date'][3:] == current_month]
+
+        print(f"\n{'Category':<12} | {'Limit':>8} | {'Spent':>8} | {'Remaining':>10} | Status")
+        print("-" * 60)
+
+        for b in logged_in_user['budgets']:
+            spent = sum(x['amount'] for x in monthly if x['category'].lower() == b['category'].lower())
+            remaining = b['limit'] - spent
+            if remaining > b['limit'] * 0.3:
+                status = "✅ OK"
+            elif remaining > 0:
+                status = "⚠️ Low"
+            else:
+                status = "🔴 Exceeded"
+
+            print(f"{b['category']:<12} | ₹{b['limit']:>7} | ₹{spent:>7} | ₹{remaining:>9} | {status}")
+
+    @staticmethod
+    def show_summary(logged_in_user):
+        current_month = datetime.now().strftime("%m-%Y")
+        monthly = [x for x in logged_in_user['expenses'] if x['date'][3:] == current_month]
+
+        if not monthly:
+            print("No expenses this month")
+            return
+
+        total = sum(x['amount'] for x in monthly)
+
+        categories = {}
+        for x in monthly:
+            categories[x['category']] = categories.get(x['category'], 0) + x['amount']
+
+        highest_cat = max(categories, key=categories.get)
+        lowest_cat = min(categories, key=categories.get)
+
+        days = {}
+        for x in monthly:
+            days[x['date']] = days.get(x['date'], 0) + x['amount']
+
+        highest_day = max(days, key=days.get)
+        avg_daily = total // len(days)
+
+        print(f"\n📈 Monthly Summary - {datetime.now().strftime('%B %Y')}")
+        print("-" * 40)
+        print(f"Total Spent       : ₹{total}")
+        print(f"Highest Category  : {highest_cat} (₹{categories[highest_cat]})")
+        print(f"Lowest Category   : {lowest_cat} (₹{categories[lowest_cat]})")
+        print(f"Highest Spend Day : {highest_day} (₹{days[highest_day]})")
+        print(f"Daily Average     : ₹{avg_daily}")
 
 
 user = Expense()
